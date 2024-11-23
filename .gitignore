@@ -1,5 +1,6 @@
 RAW_recipes.csv
 venv
 best.pt
+class_counts.json
 
 __pycache__/
