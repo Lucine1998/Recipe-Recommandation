@@ -4,23 +4,25 @@ import os
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
-# 加载环境变量
+# To create structured vectorstore via PostgreDB
+
+# Load environment variables
 load_dotenv()
 
-# 数据库连接参数
+# Database connection parameters
 host = os.getenv("SCW_DB_HOST")
 port = os.getenv("SCW_DB_PORT")
 database = os.getenv("SCW_DB_NAME")
 user = os.getenv("SCW_DB_USER")
 password = os.getenv("SCW_DB_PASSWORD")
 
-# 初始化 SentenceTransformer 模型
+# Initialize the SentenceTransformer model
 model = SentenceTransformer("BAAI/bge-base-en-v1.5")
 
 
 def create_recipes_embeddings_table(batch_size=100):
     try:
-        # 创建数据库连接
+        # Establish a database connection
         connection = psycopg2.connect(
             host=host,
             port=port,
@@ -30,39 +32,39 @@ def create_recipes_embeddings_table(batch_size=100):
         )
         cursor = connection.cursor()
 
-        # 确保 pgvector 扩展已安装
+        # Ensure the pgvector extension is installed
         cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-        print("pgvector 扩展已确保可用。")
+        print("pgvector extension ensured available.")
 
-        # 创建新表 recipes_embeddings
+        # Create a new table `recipes_embeddings`
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS recipes_embeddings (
             id BIGINT PRIMARY KEY,
-            embedding VECTOR(768)  -- pgvector 的向量类型
+            embedding VECTOR(768)  -- Vector type for pgvector
         );
         """)
-        print("表 recipes_embeddings 创建成功或已存在。")
+        print("Table `recipes_embeddings` created successfully or already exists.")
 
-        # 查询原表中需要处理的数据
+        # Query data from the original table to process
         cursor.execute("SELECT id, description FROM recipes;")
         rows = cursor.fetchall()
 
-        # 检查哪些嵌入已经存在
+        # Check which embeddings already exist
         cursor.execute("SELECT id FROM recipes_embeddings;")
         existing_ids = {row[0] for row in cursor.fetchall()}
 
-        # 准备数据
+        # Prepare data for processing
         to_process = [(row[0], row[1]) for row in rows if row[0] not in existing_ids]
-        print(f"需生成嵌入的数据量: {len(to_process)}")
+        print(f"Number of records to process embeddings: {len(to_process)}")
 
-        # 批量生成嵌入并插入
+        # Generate embeddings in batches and insert into the database
         batch = []
-        for record_id, description in tqdm(to_process, desc="生成嵌入"):
-            if description:  # 确保 description 非空
+        for record_id, description in tqdm(to_process, desc="Generating embeddings"):
+            if description:  # Ensure the description is not empty
                 embedding = model.encode(description).tolist()
                 batch.append((record_id, embedding))
 
-                # 每 batch_size 插入一次
+                # Insert every `batch_size` records
                 if len(batch) >= batch_size:
                     cursor.executemany("""
                     INSERT INTO recipes_embeddings (id, embedding)
@@ -71,7 +73,7 @@ def create_recipes_embeddings_table(batch_size=100):
                     connection.commit()
                     batch = []
 
-        # 插入最后一批数据
+        # Insert the remaining records
         if batch:
             cursor.executemany("""
             INSERT INTO recipes_embeddings (id, embedding)
@@ -79,23 +81,23 @@ def create_recipes_embeddings_table(batch_size=100):
             """, batch)
             connection.commit()
 
-        print("嵌入生成并存储完成！")
+        print("Embedding generation and storage completed!")
 
     except Exception as error:
-        print("操作失败，错误信息:", error)
+        print("Operation failed. Error details:", error)
 
     finally:
-        # 关闭连接
+        # Close the database connection
         if cursor:
             cursor.close()
         if connection:
             connection.close()
-        print("数据库连接已关闭。")
+        print("Database connection closed.")
 
 
 def similarity_search(query, top_k=5):
     try:
-        # 创建数据库连接
+        # Establish a database connection
         connection = psycopg2.connect(
             host=host,
             port=port,
@@ -105,10 +107,10 @@ def similarity_search(query, top_k=5):
         )
         cursor = connection.cursor()
 
-        # 生成查询的嵌入
+        # Generate the embedding for the query
         query_embedding = model.encode(query).tolist()
 
-        # 执行相似性搜索
+        # Perform similarity search
         cursor.execute("""
         SELECT id, embedding <=> %s AS similarity
         FROM recipes_embeddings
@@ -117,26 +119,26 @@ def similarity_search(query, top_k=5):
         """, (query_embedding, top_k))
         results = cursor.fetchall()
 
-        print("相似性搜索结果：")
+        print("Similarity search results:")
         for result in results:
             print(f"ID: {result[0]}, Similarity: {result[1]}")
 
     except Exception as error:
-        print("相似性搜索失败，错误信息:", error)
+        print("Similarity search failed. Error details:", error)
 
     finally:
-        # 关闭连接
+        # Close the database connection
         if cursor:
             cursor.close()
         if connection:
             connection.close()
-        print("数据库连接已关闭。")
+        print("Database connection closed.")
 
 
-# 运行脚本
+# Run the script
 if __name__ == "__main__":
     create_recipes_embeddings_table(batch_size=100)
 
-    # 示例查询
-    query_text = "We have blueberry and honey at home, can you recommend us some recipes to make fully use of our food at home."
+    # Example query
+    query_text = "We have blueberry and honey at home, can you recommend us some recipes to make full use of our food at home."
     similarity_search(query_text, top_k=5)
