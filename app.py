@@ -13,40 +13,52 @@ def process_input(user_input, image):
     If an image is uploaded, processes the image with YOLO and generates a prompt.
     """
     if image or user_input:
-        # Process the image with YOLO and get the prompt
+        # Create the user message (with image if provided)
+        user_message = {"role": "user", "content": user_input or ""}
         if image:
-            prompt = yolo_processor.process(image)
-            prompt += f"\nUser asked: {user_input}"  # Append the user's question to the prompt
-        else: 
-            prompt = user_input
-        # If no image is uploaded, perform the similarity search based on the user's input
-        search_results = similarity_search(prompt, top_k=5)
+            # Convert image to a format suitable for display
+            user_message["image"] = image
 
-        # Format the search results into a string that the LLM can use for context
-        formatted_context = [
-            f"Recipe ID: {res['id']}, Name: {res['name']}, Description: {res['description']}"
-            for res in search_results
-        ]
-        # Ask the LLM with the formatted context and the user's input as the question
-        question = "Can you suggest the most nutritious option among these recipes?"
-        response = ask_question_with_context(question, formatted_context)
-        return [{"role": "user", "content": user_input}, {"role": "assistant", "content": response}]
-    
-    # If no valid input is provided
-    return [{"role": "assistant", "content": "Please provide a message or an image."}]
-
-def call_local_llama(user_input, image):
-    """
-    Handles text input and optional image upload for the LocaLlama API call.
-    """
-    if image or user_input:
         # Process the image with YOLO and get the prompt
         if image:
             prompt = yolo_processor.process(image)
             prompt += f"\nUser asked: {user_input}"  # Append the user's question to the prompt
         else:
             prompt = user_input
-        
+
+        # Perform similarity search and format the response
+        search_results = similarity_search(prompt, top_k=5)
+        formatted_context = [
+            f"Recipe ID: {res['id']}, Name: {res['name']}, Description: {res['description']}"
+            for res in search_results
+        ]
+        question = "Can you suggest the most nutritious option among these recipes?"
+        response = ask_question_with_context(question, formatted_context)
+
+        assistant_message = {"role": "assistant", "content": response}
+        return [user_message, assistant_message], "", None  # Reset user_input and image fields
+    
+    # If no valid input is provided
+    return [{"role": "assistant", "content": "Please provide a message or an image."}], "", None
+
+def call_local_llama(user_input, image):
+    """
+    Handles text input and optional image upload for the LocaLlama API call.
+    """
+    if image or user_input:
+        # Create the user message (with image if provided)
+        user_message = {"role": "user", "content": user_input or ""}
+        if image:
+            # Convert image to a format suitable for display
+            user_message["image"] = image
+
+        # Process the image with YOLO and get the prompt
+        if image:
+            prompt = yolo_processor.process(image)
+            prompt += f"\nUser asked: {user_input}"  # Append the user's question to the prompt
+        else:
+            prompt = user_input
+
         # Make a POST request to the LocaLlama API
         try:
             response = requests.post(
@@ -58,19 +70,19 @@ def call_local_llama(user_input, image):
                 },
                 timeout=3000
             )
-            # Parse the response JSON
             if response.status_code == 200:
                 result = response.json()
                 message = result.get("message", "No response received.")
                 content = message.get("content", "No content received.")
-                return [{"role": "user", "content": user_input}, {"role": "assistant", "content": content}]
+                assistant_message = {"role": "assistant", "content": content}
+                return [user_message, assistant_message], "", None  # Reset user_input and image fields
             else:
-                return [{"role": "assistant", "content": f"Error: {response.status_code} - {response.text}"}]
+                return [{"role": "assistant", "content": f"Error: {response.status_code} - {response.text}"}], "", None
         except Exception as e:
-            return [{"role": "assistant", "content": f"Error communicating with LocaLlama API: {str(e)}"}]
+            return [{"role": "assistant", "content": f"Error communicating with LocaLlama API: {str(e)}"}], "", None
     
     # If no valid input is provided
-    return [{"role": "assistant", "content": "Please provide a message or an image."}]
+    return [{"role": "assistant", "content": "Please provide a message or an image."}], "", None
 
 def display_image():
     """Function to display the image below the 'More Details' button"""
@@ -79,7 +91,7 @@ def display_image():
 # Front-End Layout using Gradio
 with gr.Blocks(css="""
     body {
-        background-color: #ffffff;  /* White background for the whole body */
+        background-color: #ffffff;  
     }
     #header {
         text-align: center;
@@ -91,10 +103,12 @@ with gr.Blocks(css="""
         border-radius: 10px;
     }
     .main-content {
-        background-color: #f0f8ff;  /* Light blue background for the main content */
+        background-color: #f0f8ff;  
         padding: 20px;
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: row;
     }
     #user_input {
         width: 100%;
@@ -129,14 +143,16 @@ with gr.Blocks(css="""
     #local_btn:hover {
         background-color: #e64a19;
     }
+    
     .chatbox {
         border: 1px solid #ccc;
         border-radius: 8px;
         padding: 10px;
         background-color: #f9f9f9;
-        max-height: 500px;
+        max_height: 600px;
         overflow-y: auto;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        # flex: 1;
     }
     #instructions {
         font-size: 0.9rem;
@@ -149,9 +165,20 @@ with gr.Blocks(css="""
         color: #007BFF;
     }
     #results_image {
-        max-width: 100%;  /* Limit the width to 100% of its container */
-        height: auto;  /* Maintain aspect ratio */
+        max-width: 100%;  
+        height: auto;  
     }
+    .left-column {
+        flex: 5;  
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    # .right-column {
+    #     flex: 1;
+    #     display: flex;
+    #     flex-direction: column;
+    # }
 """) as demo:
     # Header Section
     with gr.Row():
@@ -166,28 +193,29 @@ with gr.Blocks(css="""
     
     # Main layout with light blue background
     with gr.Row(elem_classes=["main-content"]):
-        with gr.Column(scale=2, min_width=600):
-            # Chatbox area with light blue background
-            chatbot = gr.Chatbot([], label="Chatbot", elem_classes=["chatbox"], type="messages")
-
-            with gr.Row():
-                user_input = gr.Textbox(
-                    placeholder="Type your message here...",
-                    label="Your Message",
-                    elem_id="user_input",
-                    lines=1,
-                    max_lines=3
-                )
-                submit_btn = gr.Button("Submit", elem_id="send_btn")
-                local_btn = gr.Button("Call LocaLlama", elem_id="local_btn")
-
+        with gr.Column(scale=1, min_width=400, elem_classes=["right-column"]):  # All input buttons on the right side
+            # Input area for message, buttons, and image upload
             with gr.Row():
                 image_upload = gr.Image(label="Upload an Image (Optional)", type="pil")
+            user_input = gr.Textbox(
+                placeholder="Type your message here...",
+                label="Your Message",
+                elem_id="user_input",
+                lines=1,
+                max_lines=3
+            )
+            submit_btn = gr.Button("Submit", elem_id="send_btn")
+            model_choice = gr.Checkbox(label="Use LocaLlama", value=False)
+            more_details_btn = gr.Button("More Details", elem_id="more_details_btn")
+            # Add a button to show the "More Details" (image) below the input
+            results_image = gr.Image(label="Annotated Image", elem_id="results_image", visible=False)
         
-        with gr.Column(scale=1, min_width=300):
+        with gr.Column(scale=2, min_width=600, elem_classes=["left-column"]):  
+            # Chatbox area with light blue background
+            chatbot = gr.Chatbot([], label="Chatbot", elem_classes=["chatbox"], type="messages")
             gr.Markdown(
                 """
-                **How it works:**  
+                *How it works:*  
                 1. Type your message or provide ingredients.  
                 2. Submit your query to receive recipe suggestions.  
                 3. The chatbot will process your input and provide results.  
@@ -195,23 +223,11 @@ with gr.Blocks(css="""
                 elem_id="instructions"
             )
 
-            # Add a button to show the "More Details" (image) 
-            more_details_btn = gr.Button("More Details", elem_id="more_details_btn")
-
-            # Image output area
-            results_image = gr.Image(label="Annotated Image", elem_id="results_image", visible=False)
-
     # Define interactions
     submit_btn.click(
-        process_input,
-        inputs=[user_input, image_upload],
-        outputs=[chatbot],
-    )
-
-    local_btn.click(
-        call_local_llama,
-        inputs=[user_input, image_upload],
-        outputs=[chatbot],
+        lambda user_input, image, use_local_llama: call_local_llama(user_input, image) if use_local_llama else process_input(user_input, image),
+        inputs=[user_input, image_upload, model_choice],
+        outputs=[chatbot, user_input, image_upload],  # Reset text and image inputs
     )
 
     # Define the interaction for the "More Details" button to display the image below
