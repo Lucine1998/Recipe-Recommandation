@@ -2,6 +2,7 @@ import gradio as gr
 from rag import similarity_search, ask_question_with_context  # Import functions from rag.py
 from YOLO import YOLOProcessor  # Import the YOLOProcessor class from YOLO.py
 import os
+import requests  # For making HTTP requests to the local API
 
 # Initialize the YOLO model globally when the app starts
 yolo_processor = YOLOProcessor(weights_path="best.pt")
@@ -30,6 +31,43 @@ def process_input(user_input, image):
         question = "Can you suggest the most nutritious option among these recipes?"
         response = ask_question_with_context(question, formatted_context)
         return [{"role": "user", "content": user_input}, {"role": "assistant", "content": response}]
+    
+    # If no valid input is provided
+    return [{"role": "assistant", "content": "Please provide a message or an image."}]
+
+def call_local_llama(user_input, image):
+    """
+    Handles text input and optional image upload for the LocaLlama API call.
+    """
+    if image or user_input:
+        # Process the image with YOLO and get the prompt
+        if image:
+            prompt = yolo_processor.process(image)
+            prompt += f"\nUser asked: {user_input}"  # Append the user's question to the prompt
+        else:
+            prompt = user_input
+        
+        # Make a POST request to the LocaLlama API
+        try:
+            response = requests.post(
+                "http://localhost:11434/api/chat",
+                json={
+                    "model": "llama3.2:3b",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "stream": False
+                },
+                timeout=3000
+            )
+            # Parse the response JSON
+            if response.status_code == 200:
+                result = response.json()
+                message = result.get("message", "No response received.")
+                content = message.get("content", "No content received.")
+                return [{"role": "user", "content": user_input}, {"role": "assistant", "content": content}]
+            else:
+                return [{"role": "assistant", "content": f"Error: {response.status_code} - {response.text}"}]
+        except Exception as e:
+            return [{"role": "assistant", "content": f"Error communicating with LocaLlama API: {str(e)}"}]
     
     # If no valid input is provided
     return [{"role": "assistant", "content": "Please provide a message or an image."}]
@@ -77,6 +115,19 @@ with gr.Blocks(css="""
     }
     #send_btn:hover {
         background-color: #218838;
+    }
+    #local_btn {
+        background-color: #ff5722;
+        color: white;
+        font-weight: bold;
+        border-radius: 8px;
+        height: 45px;
+        width: 100%;
+        border: none;
+        cursor: pointer;
+    }
+    #local_btn:hover {
+        background-color: #e64a19;
     }
     .chatbox {
         border: 1px solid #ccc;
@@ -128,6 +179,7 @@ with gr.Blocks(css="""
                     max_lines=3
                 )
                 submit_btn = gr.Button("Submit", elem_id="send_btn")
+                local_btn = gr.Button("Call LocaLlama", elem_id="local_btn")
 
             with gr.Row():
                 image_upload = gr.Image(label="Upload an Image (Optional)", type="pil")
@@ -152,6 +204,12 @@ with gr.Blocks(css="""
     # Define interactions
     submit_btn.click(
         process_input,
+        inputs=[user_input, image_upload],
+        outputs=[chatbot],
+    )
+
+    local_btn.click(
+        call_local_llama,
         inputs=[user_input, image_upload],
         outputs=[chatbot],
     )
