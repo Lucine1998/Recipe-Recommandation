@@ -1,6 +1,7 @@
 import gradio as gr
 from rag import similarity_search, ask_question_with_context  # Import functions from rag.py
 from YOLO import YOLOProcessor  # Import the YOLOProcessor class from YOLO.py
+import os
 
 # Initialize the YOLO model globally when the app starts
 yolo_processor = YOLOProcessor(weights_path="best.pt")
@@ -32,6 +33,10 @@ def process_input(user_input, image):
     
     # If no valid input is provided
     return [{"role": "assistant", "content": "Please provide a message or an image."}]
+
+def display_image():
+    """Function to display the image below the 'More Details' button"""
+    return gr.Image("result.jpg", label="Annotated Image", visible=True)
 
 # Front-End Layout using Gradio
 with gr.Blocks(css="""
@@ -92,6 +97,10 @@ with gr.Blocks(css="""
     #instructions b {
         color: #007BFF;
     }
+    #results_image {
+        max-width: 100%;  /* Limit the width to 100% of its container */
+        height: auto;  /* Maintain aspect ratio */
+    }
 """) as demo:
     # Header Section
     with gr.Row():
@@ -133,12 +142,25 @@ with gr.Blocks(css="""
                 """,
                 elem_id="instructions"
             )
-    
+
+            # Add a button to show the "More Details" (image) 
+            more_details_btn = gr.Button("More Details", elem_id="more_details_btn")
+
+            # Image output area
+            results_image = gr.Image(label="Annotated Image", elem_id="results_image", visible=False)
+
     # Define interactions
     submit_btn.click(
         process_input,
         inputs=[user_input, image_upload],
         outputs=[chatbot],
+    )
+
+    # Define the interaction for the "More Details" button to display the image below
+    more_details_btn.click(
+        display_image,
+        inputs=[],  # No inputs needed to show the image
+        outputs=[results_image],  # Show the image in the specified output element
     )
 
 # Launch the app
