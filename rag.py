@@ -5,6 +5,7 @@ from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 from llm_client_scaleway import LLMClient
 
+
 # Load environment variables
 load_dotenv()
 
@@ -90,9 +91,13 @@ def ask_question_with_context(question, context):
         f"Here are some relevant recipes based on your input:\n"
         f"{context_text}\n\n"
         f"Question: {question}"
+
+        "Keep the response concise and no numeric info included in answer (expect time)."
+        "Make sure to mention if some ingredients in the recipe we dont have at home."
     )
 
-    print(f"Asking LLMClient with message:\n{full_message}")
+    print(f"Question: {question}")
+    # print(f"Asking LLMClient with message:\n{full_message}")
     response = client.generate_response(user_message=full_message, stream=False)
     print("Response:", response)
     return response
@@ -100,15 +105,18 @@ def ask_question_with_context(question, context):
 
 if __name__ == "__main__":
     # Example query
-    query_text = "We have blueberry and honey at home, can you recommend us 5 recipes to make full use of our food at home."
-    search_results = similarity_search(query_text, top_k=5)
+    query_text = "I have 2 eggs at home. Can you recommend recipes that use these ingredients effectively?"
+
+    # Retrieve top 10 similar recipes
+    search_results = similarity_search(query_text, top_k=10)
 
     # Format results into strings for LLM context
     formatted_context = [
-        f"Recipe ID: {res['id']}, Name: {res['name']}, Description: {res['description']}"
+        f"Name: {res['name']}, Description: {res['description']}, Preparation time (minutes): {res['minutes']}, Nutrition (calories (#), total fat (PDV), sugar (PDV), sodium (PDV), protein (PDV), saturated fat): {res['nutrition']}"
         for res in search_results
     ]
 
-    # Ask the LLMClient API with the context
-    question = "Can you suggest the most nutritious option among these recipes?"
+    # Use formatted context directly for querying
+    # question = "Based on the available ingredients, suggest the top 3 most nutritious recipes."
+    question = "Based on the available ingredients, suggest the top 3 eastest recipes to make."
     ask_question_with_context(question, formatted_context)
