@@ -24,6 +24,22 @@ client = LLMClient(
     api_key=os.getenv("SCW_SECRET_KEY")
 )
 
+def get_prompt(user_input, image_info):
+    """
+    Generate a prompt based on the user input and the image information.
+    """
+    final_checking = "Please if the request is not about food, kindly answer to the user that you can only provide information about food and recipies."
+    prompt = ""
+    if image_info:
+        if not user_input or user_input == "":
+            prompt += f"Please, could you give me an idea of recipies you can make with the following ingredients: {image_info}"
+        else:
+            prompt += f"{user_input}: {image_info}."
+    elif user_input:   
+        prompt += f"{user_input}."
+    else:
+        return ""
+    return prompt + final_checking
 
 def similarity_search(query, top_k=5):
     """

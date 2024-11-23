@@ -1,4 +1,14 @@
 RAW_recipes.csv
 venv
+.DS_Store
+.gradio/
+best.pt
+class_counts.json
+model.pkl
+model.pth
+recipe_recomendation.yml
+result.jpg
+result_image.jpg
+
 
 __pycache__/

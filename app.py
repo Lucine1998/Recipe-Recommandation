@@ -1,5 +1,5 @@
 import gradio as gr
-from rag import similarity_search, ask_question_with_context  # Import functions from rag.py
+from rag import similarity_search, ask_question_with_context, get_prompt  # Import functions from rag.py
 from YOLO import YOLOProcessor  # Import the YOLOProcessor class from YOLO.py
 import os
 import requests  # For making HTTP requests to the local API
@@ -20,21 +20,13 @@ def process_input(user_input, image):
             user_message["image"] = image
 
         # Process the image with YOLO and get the prompt
+        image_info = None
         if image:
-            prompt = yolo_processor.process(image)
-            prompt += f"\nUser asked: {user_input}"  # Append the user's question to the prompt
-        else:
-            prompt = user_input
+            image_info = yolo_processor.process(image)
+        prompt = get_prompt(user_input, image_info)
 
-        # Perform similarity search and format the response
-        search_results = similarity_search(prompt, top_k=5)
-        formatted_context = [
-            f"Recipe ID: {res['id']}, Name: {res['name']}, Description: {res['description']}"
-            for res in search_results
-        ]
-        question = "Can you suggest the most nutritious option among these recipes?"
-        response = ask_question_with_context(question, formatted_context)
-
+        # Perform the AI task and generate the response
+        response = ask_question_with_context(prompt, [])
         assistant_message = {"role": "assistant", "content": response}
         return [user_message, assistant_message], "", None  # Reset user_input and image fields
     
@@ -53,11 +45,10 @@ def call_local_llama(user_input, image):
             user_message["image"] = image
 
         # Process the image with YOLO and get the prompt
+        image_info = None
         if image:
-            prompt = yolo_processor.process(image)
-            prompt += f"\nUser asked: {user_input}"  # Append the user's question to the prompt
-        else:
-            prompt = user_input
+            image_info = yolo_processor.process(image)
+        prompt = get_prompt(user_input, image_info)
 
         # Make a POST request to the LocaLlama API
         try:
@@ -91,19 +82,21 @@ def display_image():
 # Front-End Layout using Gradio
 with gr.Blocks(css="""
     body {
-        background-color: #ffffff;  
+        background-color: #F7F7F7;  /* Light Grayish White */
     }
     #header {
         text-align: center;
         color: white;
-        background-color: #007BFF;
+        background-color: #E8CCC9;
         padding: 15px;
-        font-size: 2rem;
+        font-size: 2.5rem;
+        font-weight: bold;
         margin-bottom: 20px;
         border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .main-content {
-        background-color: #f0f8ff;  
+        background-color: #FFFFFF;  /* Pure White for contrast */
         padding: 20px;
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -114,11 +107,12 @@ with gr.Blocks(css="""
         width: 100%;
         border-radius: 8px;
         padding: 10px;
-        border: 2px solid #007BFF;
+        border: 2px solid #50E3C2; /* Teal Green */
         font-size: 1rem;
+        color: #4A4A4A; /* Dark Gray */
     }
     #send_btn {
-        background-color: #28a745;
+        background-color: #4A90E2; /* Soft Blue */
         color: white;
         font-weight: bold;
         border-radius: 8px;
@@ -128,10 +122,10 @@ with gr.Blocks(css="""
         cursor: pointer;
     }
     #send_btn:hover {
-        background-color: #218838;
+        background-color: #357ABD; /* Darker Blue on hover */
     }
     #local_btn {
-        background-color: #ff5722;
+        background-color: #50E3C2; /* Teal Green */
         color: white;
         font-weight: bold;
         border-radius: 8px;
@@ -141,28 +135,27 @@ with gr.Blocks(css="""
         cursor: pointer;
     }
     #local_btn:hover {
-        background-color: #e64a19;
+        background-color: #3CB29D; /* Darker Green on hover */
     }
     
     .chatbox {
-        border: 1px solid #ccc;
+        border: 1px solid #E0E0E0;
         border-radius: 8px;
         padding: 10px;
-        background-color: #f9f9f9;
-        max_height: 600px;
+        background-color: #FFFFFF; /* White */
+        max-height: 600px;
         overflow-y: auto;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        # flex: 1;
     }
     #instructions {
         font-size: 0.9rem;
-        color: #555;
-        background-color: #f0f8ff;
+        color: #4A4A4A; /* Dark Gray */
+        background-color: #F7F7F7; /* Light Grayish White */
         padding: 15px;
         border-radius: 8px;
     }
     #instructions b {
-        color: #007BFF;
+        color: #4A90E2; /* Soft Blue */
     }
     #results_image {
         max-width: 100%;  
@@ -174,27 +167,26 @@ with gr.Blocks(css="""
         flex-direction: column;
         gap: 10px;
     }
-    # .right-column {
-    #     flex: 1;
-    #     display: flex;
-    #     flex-direction: column;
-    # }
+    .right-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
 """) as demo:
     # Header Section
     with gr.Row():
         gr.Markdown(
             """
-            # 🤖 Chatbot with Recipe Suggestions  
-            A simple chatbot interface with recipe suggestions based on your input.  
-            Ask a question or provide ingredients to get recipe recommendations.  
+            # 🍳 MealMate  
+            ### Your AI Assistant for Recipe Suggestions  
+            Ask questions or upload an image to get personalized recipe recommendations!  
             """,
             elem_id="header"
         )
     
-    # Main layout with light blue background
+    # Main layout
     with gr.Row(elem_classes=["main-content"]):
         with gr.Column(scale=1, min_width=400, elem_classes=["right-column"]):  # All input buttons on the right side
-            # Input area for message, buttons, and image upload
             with gr.Row():
                 image_upload = gr.Image(label="Upload an Image (Optional)", type="pil")
             user_input = gr.Textbox(
@@ -207,11 +199,9 @@ with gr.Blocks(css="""
             submit_btn = gr.Button("Submit", elem_id="send_btn")
             model_choice = gr.Checkbox(label="Use LocaLlama", value=False)
             more_details_btn = gr.Button("More Details", elem_id="more_details_btn")
-            # Add a button to show the "More Details" (image) below the input
             results_image = gr.Image(label="Annotated Image", elem_id="results_image", visible=False)
         
         with gr.Column(scale=2, min_width=600, elem_classes=["left-column"]):  
-            # Chatbox area with light blue background
             chatbot = gr.Chatbot([], label="Chatbot", elem_classes=["chatbox"], type="messages")
             gr.Markdown(
                 """
@@ -227,14 +217,13 @@ with gr.Blocks(css="""
     submit_btn.click(
         lambda user_input, image, use_local_llama: call_local_llama(user_input, image) if use_local_llama else process_input(user_input, image),
         inputs=[user_input, image_upload, model_choice],
-        outputs=[chatbot, user_input, image_upload],  # Reset text and image inputs
+        outputs=[chatbot, user_input, image_upload],
     )
 
-    # Define the interaction for the "More Details" button to display the image below
     more_details_btn.click(
         display_image,
-        inputs=[],  # No inputs needed to show the image
-        outputs=[results_image],  # Show the image in the specified output element
+        inputs=[],
+        outputs=[results_image],
     )
 
 # Launch the app
