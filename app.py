@@ -1,29 +1,39 @@
 import gradio as gr
 from rag import similarity_search, ask_question_with_context  # Import functions from rag.py
+from YOLO import YOLOProcessor  # Import the YOLOProcessor class from YOLO.py
+
+# Initialize the YOLO model globally when the app starts
+yolo_processor = YOLOProcessor(weights_path="best.pt")
 
 def process_input(user_input, image):
     """
     Handles text input and optional image upload. Calls similarity_search and ask_question_with_context.
+    If an image is uploaded, processes the image with YOLO and generates a prompt.
     """
-    if user_input:
-        # Call similarity_search to get related recipes based on the user's input
-        search_results = similarity_search(user_input, top_k=5)
+    if image or user_input:
+        # Process the image with YOLO and get the prompt
+        if image:
+            prompt = yolo_processor.process(image)
+            prompt += f"\nUser asked: {user_input}"  # Append the user's question to the prompt
+        else: 
+            prompt = user_input
+        # If no image is uploaded, perform the similarity search based on the user's input
+        search_results = similarity_search(prompt, top_k=5)
 
         # Format the search results into a string that the LLM can use for context
         formatted_context = [
             f"Recipe ID: {res['id']}, Name: {res['name']}, Description: {res['description']}"
             for res in search_results
         ]
-
         # Ask the LLM with the formatted context and the user's input as the question
         question = "Can you suggest the most nutritious option among these recipes?"
         response = ask_question_with_context(question, formatted_context)
-    else:
-        response = "Please provide a message or an image."
+        return [{"role": "user", "content": user_input}, {"role": "assistant", "content": response}]
+    
+    # If no valid input is provided
+    return [{"role": "assistant", "content": "Please provide a message or an image."}]
 
-    return [{"role": "user", "content": user_input}, {"role": "assistant", "content": response}]
-
-# Front-End Layout
+# Front-End Layout using Gradio
 with gr.Blocks(css="""
     body {
         background-color: #ffffff;  /* White background for the whole body */
