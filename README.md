@@ -80,19 +80,12 @@ MealMate is a work in progress with ambitious plans for growth:
 
 This work was completed as part of the following hackathon:
 
-## Acknowledgments
-
-This work was completed as part of the following hackathon:
-
 **Consumer AI Edge Hackathon** organized by:
-- EntrepreneurFirst
-- Hugging Face
-- Meta-PyTorch
-- Scaleway
+- EntrepreneurFirst <img src="images/ef.png" width="30" />
+- Hugging Face <img src="images/hf.png" width="30" />
+- Meta-PyTorch <img src="images/Meta-Logo.png" width="30" />
+- Scaleway <img src="images/Scaleway.png" width="30" />
 
-![EntrepreneurFirst Logo](image/ef.png)
-![Hugging Face Logo](image/hf.png)
-![Meta-PyTorch Logo](image/Meta_Logo.png)
-![Scaleway Logo](image/Scaleway.png)
+
 
         
