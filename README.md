@@ -76,17 +76,18 @@ The following is a demostration video: [MealMate-Demo](https://drive.google.com/
 2. Install required packages:
    1. If using Conda:
    ```bash
-   conda env create -f environment.yml```
+   conda env create -f environment.yml
    2. otherwise:
    ```bash
-   pip install requirements.txt```
+   pip install requirements.txt
 3. Enabling Llama 3.2-3b to run locally (via Ollama):
    1. Install Ollama based on your specific device: [Ollama Website](https://ollama.com/download)
    2. Pull the Llama 3.2-3b model:
    ```bash
    ollama pull llama3.2:3b
-   3.```bash
-   ollama serve```
+   3. Running ollama service
+   ```bash
+   ollama serve
 
 ## Acknowledgments
 
