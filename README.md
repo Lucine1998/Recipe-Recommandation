@@ -55,6 +55,10 @@ MealMate is a work in progress with ambitious plans for growth:
 
 ---
 
+## Example of interaction:
+In this case the user provide an image of the food in the fridge and ask for a vegan recipe:
+
+
 ## Getting Started
 
 1. Clone the repository:
@@ -79,6 +83,10 @@ MealMate is a work in progress with ambitious plans for growth:
 ## Acknowledgments
 
 This work was completed as part of the following hackathon:
+- Input:
+<img src="images/example_vegan_input.png" width="500" />
+- Output:
+<img src="images/example_vegan_output.png" width="500" />
 
 **Consumer AI Edge Hackathon** organized by:
 - EntrepreneurFirst <img src="images/ef.png" width="30" />
