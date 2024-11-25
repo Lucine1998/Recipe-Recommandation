@@ -1,4 +1,4 @@
-# MealMate
+# MealMate 🍳
 
 MealMate is an innovative application designed to analyze photos or descriptions of food ingredients, offering personalized recipes tailored to individual user preferences. It emphasizes health-conscious and budget-friendly options, making cooking both easy and enjoyable. The app includes the option to run locally using Llama3.2-3b enhancing accessibility and user safety.
 
@@ -39,7 +39,7 @@ The final recipe is displayed to the user in a clean, intuitive format with opti
 ## Features
 - **Ingredient Recognition**: Accurately identify ingredients from photos or text inputs.
 - **Personalized Recipes**: Generate recipes tailored to dietary needs and preferences, including health-conscious and budget-friendly options.
-- **Optimized Experience**: User-friendly interface designed for seamless interaction.
+- **Optimized Experience**: User-friendly interface designed for seamless interaction using [gradio](https://www.gradio.app/)
 
 ---
 
@@ -75,4 +75,20 @@ MealMate is a work in progress with ambitious plans for growth:
    ollama pull llama3.2:3b
    3.```bash
    ollama serve
+
+## Acknowledgments
+
+This work was completed as part of the following hackathon:
+
+**Consumer AI Edge Hackathon** organized by:
+- EntrepreneurFirst
+- Hugging Face
+- Meta-PyTorch
+- Scaleway
+
+![EntrepreneurFirst Logo](link-to-entrepreneurfirst-logo)
+![Hugging Face Logo](link-to-huggingface-logo)
+![Meta-PyTorch Logo](link-to-meta-pytorch-logo)
+![Scaleway Logo](link-to-scaleway-logo)
+
         
