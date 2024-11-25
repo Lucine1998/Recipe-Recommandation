@@ -56,19 +56,23 @@ MealMate is a work in progress with ambitious plans for growth:
 ---
 
 ## Getting Started
+
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Lucine1998/Recipe-Recommandation.git
-   cd Recipe-Recomendation```
+   git clone https://github.com/Lucine1998/Recipe-Recommendation.git
+   cd Recipe-Recommendation
 2. Install required packages:
-  2.1. If using conda:
+   1. If using Conda:
    ```bash
-   conda env create -f environment.yml```
-  2.2. Otherwise:
-  ```bash
-   pip install requirements.txt```
-3. Enabling running Llama3.2-3b locally (via ollama):
-  3.1. Install ollama based on your specific device: [ollama_website](https://ollama.com/download)
-  3.2. ollama pull llama3.2:3b
-  3.2. ollama serve
+   conda env create -f environment.yml
+   2. otherwise:
+   ```bash
+   pip install requirements.txt
+3. Enabling Llama 3.2-3b to run locally (via Ollama):
+   1. Install Ollama based on your specific device: [Ollama Website](https://ollama.com/download)
+   2. Pull the Llama 3.2-3b model:
+   ```bash
+   ollama pull llama3.2:3b
+   3.```bash
+   ollama serve
         
