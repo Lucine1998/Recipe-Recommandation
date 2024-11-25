@@ -83,7 +83,7 @@ This work was completed as part of the following hackathon:
 **Consumer AI Edge Hackathon** organized by:
 - EntrepreneurFirst <img src="images/ef.png" width="30" />
 - Hugging Face <img src="images/hf.png" width="30" />
-- Meta-PyTorch <img src="images/Meta-Logo.png" width="30" />
+- Meta-PyTorch <img src="images/Meta-Logo.png" width="30" />  <img src="images/PyTorch_logo_icon.svg" width="20" />
 - Scaleway <img src="images/Scaleway.png" width="30" />
 
 
