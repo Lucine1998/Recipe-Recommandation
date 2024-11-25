@@ -58,6 +58,14 @@ MealMate is a work in progress with ambitious plans for growth:
 ## Example of interaction:
 In this case the user provide an image of the food in the fridge and ask for a vegan recipe:
 
+- Input:
+<img src="images/example_vegan_input.png" width="500" />
+- Output:
+<img src="images/example_vegan_output.png" width="500" />
+
+## Demo video:
+
+The following is a demostration video: [MealMate-Demo](https://drive.google.com/file/d/1XGPk7EdBovpzDkAAA8mPppz-15LHNB2m/view?usp=drive_link)
 
 ## Getting Started
 
@@ -83,10 +91,6 @@ In this case the user provide an image of the food in the fridge and ask for a v
 ## Acknowledgments
 
 This work was completed as part of the following hackathon:
-- Input:
-<img src="images/example_vegan_input.png" width="500" />
-- Output:
-<img src="images/example_vegan_output.png" width="500" />
 
 **Consumer AI Edge Hackathon** organized by:
 - EntrepreneurFirst <img src="images/ef.png" width="30" />
