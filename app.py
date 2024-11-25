@@ -7,6 +7,9 @@ import requests  # For making HTTP requests to the local API
 # Initialize the YOLO model globally when the app starts
 yolo_processor = YOLOProcessor(weights_path="best.pt")
 
+# Session history to keep track of conversations for different users
+session_history = {}
+
 def process_input(user_input, image):
     """
     Handles text input and optional image upload. Calls similarity_search and ask_question_with_context.
@@ -37,40 +40,56 @@ def call_local_llama(user_input, image):
     """
     Handles text input and optional image upload for the LocaLlama API call.
     """
-    if image or user_input:
-        # Create the user message (with image if provided)
-        user_message = {"role": "user", "content": user_input or ""}
-        if image:
-            # Convert image to a format suitable for display
-            user_message["image"] = image
+    # Generate or retrieve session_id for the user (mocked with chat_history for simplicity)
+    session_id = "current_session"  # Replace with actual session management logic if needed
+    if session_id not in session_history:
+        session_history[session_id] = []  # Initialize session history for a new session
+    
+    # Add user message to session history
+    user_message = {"role": "user", "content": user_input or "Image uploaded for recipe suggestion."}
+    if image:
+        user_message["image"] = image  # Optionally add image to the message
+    session_history[session_id].append(user_message)
 
-        # Process the image with YOLO and get the prompt
-        image_info = None
-        if image:
-            image_info = yolo_processor.process(image)
-        prompt = get_prompt(user_input, image_info)
+    # Process the image with YOLO and get the prompt
+    image_info = None
+    if image:
+        image_info = yolo_processor.process(image)
+    prompt = get_prompt(user_input, image_info) if user_input or image else "No query provided."
 
-        # Make a POST request to the LocaLlama API
-        try:
-            response = requests.post(
-                "http://localhost:11434/api/chat",
-                json={
-                    "model": "llama3.2:3b",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "stream": False
-                },
-                timeout=3000
-            )
-            if response.status_code == 200:
-                result = response.json()
-                message = result.get("message", "No response received.")
-                content = message.get("content", "No content received.")
-                assistant_message = {"role": "assistant", "content": content}
-                return [user_message, assistant_message], "", None  # Reset user_input and image fields
-            else:
-                return [{"role": "assistant", "content": f"Error: {response.status_code} - {response.text}"}], "", None
-        except Exception as e:
-            return [{"role": "assistant", "content": f"Error communicating with LocaLlama API: {str(e)}"}], "", None
+    # Construct the messages list to include the session history (last 5 messages for context)
+    messages = [{"role": "user", "content": prompt}]
+    
+    # Add the last 5 messages from session history to context (both user and assistant messages)
+    conversation_context = session_history[session_id][-5:]  # Get the last 5 messages
+    for msg in conversation_context:
+        messages.append({"role": msg['role'], "content": msg['content']})
+    
+    # Make the POST request to the Llama API with the updated messages
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/chat",
+            json={
+                "model": "llama3.2:3b",  # Model version or identifier
+                "messages": messages,  # Include the full conversation history
+                "stream": False  # Set to True if you want streaming responses
+            },
+            timeout=3000
+        )
+        if response.status_code == 200:
+            result = response.json()
+            message = result.get("message", {})
+            content = message.get("content", "No content received.")
+            assistant_message = {"role": "assistant", "content": content}
+            
+            # Append the assistant's response to session history
+            session_history[session_id].append(assistant_message)
+
+            return [user_message, assistant_message], "", None  # Return response
+        else:
+            return [{"role": "assistant", "content": f"Error: {response.status_code} - {response.text}"}], "", None
+    except Exception as e:
+        return [{"role": "assistant", "content": f"Error communicating with LocaLlama API: {str(e)}"}], "", None
     
     # If no valid input is provided
     return [{"role": "assistant", "content": "Please provide a message or an image."}], "", None
